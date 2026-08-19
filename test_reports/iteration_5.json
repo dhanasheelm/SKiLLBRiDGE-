@@ -1,0 +1,29 @@
+{
+  "summary": "Iteration 5: verified 4 new SKILLBRIDGE features. Backend: 18/18 pytest pass (2 previous suites + new test_new_features.py with 9 cases covering forgot-password, owned opportunities, applicants (owner + 403), PATCH status + notification insert, portfolio upload PDF + fetch, extension rejection, oversize rejection, regression). Frontend: forgot-password modal on /student/login fires real API and shows 'sent' view; NotificationBell popover opens, shows unread-dot, mark-read + view-all work; Workspace shows 7 owned-opportunity cards for maya with correct applicant_count pill (07); Review Applicants navigates to /workspace/opportunities/frontend-intern/applicants and renders 7 applicant cards with name/match/status testids; clicking applicant-move-{id}-shortlisted updates UI in place; non-owner (aarav) navigating same URL shows applicants-error empty state; portfolio-upload-input in Edit Profile modal (as maya) uploads a PDF, portfolio-uploaded success note appears, save+reopen shows portfolio-open-link, profile page shows profile-portfolio-link. 0 console errors on all tested pages.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/backend/tests/test_skillbridge_api.py",
+    "/app/backend/tests/test_dynamic_data.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py: init_storage failure at startup only logs a warning — good, but subsequent /portfolio/upload calls will return 503. Consider surfacing a health field in /api/health so ops can detect storage outages.",
+    "server.py: forgot_password inserts a password_reset row on every call and never validates or expires them; token TTL comment says 15min but there is no expiry field / reset endpoint. Fine for demo — flag when a real reset flow is added.",
+    "list_applicants and update_application_status use owner_email as auth via query/body. Acceptable for demo; production should tie to a session/JWT to prevent spoofing (any client can pass any owner_email).",
+    "server.py get_portfolio uses the storage path from the URL directly. Only files registered in db.portfolio_files can be fetched, which is good, but path is user-derived — validate/normalise to prevent traversal-style requests to unintended objects.",
+    "App.js is now ~236 lines but all components live in one file. Recommended split when the file grows past 700 lines (Applicants, Workspace, EditProfileModal, NotificationBell are natural extractions).",
+    "NotificationBell popover: mark-read updates local state immediately but the close-on-outside-click listener uses !e.target.closest([data-testid=notification-bell]) — clicking inside the popover but on Link/View-all navigates AND closes correctly, verified.",
+    "PATCH /applications/{id}/status returns 400 only for invalid status but does not validate status transitions (e.g., Rejected → Selected). Acceptable for MVP."
+  ],
+  "updated_files": ["/app/backend/tests/test_new_features.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Student demo: click 'Enter demo as Student' -> aarav@demo.com. Professional demo: click 'Enter demo as Skilled Professional' -> maya@demo.com (owns 7 opportunities: frontend-intern, ai-research, fullstack, design, freelance, startup, devops).",
+  "seed_data_creation": "test_new_features.py creates several TEST_<uuid>@example.com users/applications targeted at frontend-intern; these seed maya's applicant pipeline (~7 applicants visible in the UI after test run). Safe to leave in DB.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend has 18 pytest cases across three files (test_skillbridge_api.py, test_dynamic_data.py, test_new_features.py). Object storage init happens on startup — check 'Object storage initialized' in backend logs. Resend runs in sandbox — /auth/forgot returns {sent:false, reason, reset_link} for any non-owner recipient; endpoint never crashes. Applicant status update writes a notification to db.notifications for the applicant, viewable in /notifications and NotificationBell popover. All new data-testids present and populated: forgot-password-modal, forgot-submit-button, forgot-done-button, notification-bell, notifications-link, notification-popover, notification-unread-dot, popover-mark-read, popover-view-all, workspace-owned-grid, owned-opportunity-{id}, owned-count-{id}, review-applicants-{id}, applicants-page-title, applicants-count, applicants-list, applicants-error, applicant-{id}, applicant-name-{id}, applicant-match-{id}, applicant-status-{id}, applicant-move-{id}-{status}, portfolio-upload-input, portfolio-current, portfolio-uploaded, portfolio-open-link, profile-portfolio-link.",
+  "rca_of_the_issue": "N/A — all 4 features working end-to-end. Backend 100%, frontend 100%, 0 console errors."
+}
