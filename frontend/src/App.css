@@ -27,3 +27,14 @@
 .ghost-btn:disabled { opacity:.5; cursor:not-allowed; }
 .saved-detail { color:var(--pink); border-color:rgba(247,138,213,.45); }
 @media (max-width:650px) { .modal-panel { padding:24px 22px; } .modal-footer { flex-direction:column-reverse; } .modal-footer > button { width:100%; } .apply-buttons { flex-direction:column-reverse; } .apply-buttons .ghost-btn { width:100%; } }
+.small-empty { padding:40px 20px; }
+.small-empty h2 { font-size:18px; margin:14px 0 8px; }
+.small-empty .primary-btn { margin-top:14px; display:inline-flex; }
+.skeleton { background:linear-gradient(90deg,#161c2d 25%,#1c2338 50%,#161c2d 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; }
+@keyframes shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
+.skeleton-card { justify-content:space-between; }
+.skeleton-avatar { width:39px; height:39px; }
+.skeleton-dot { width:24px; height:24px; }
+.skeleton-line { height:14px; margin:6px 0; }
+.skeleton-line.short { width:40%; }
+.skeleton-tag-row { height:22px; margin:14px 0; }
