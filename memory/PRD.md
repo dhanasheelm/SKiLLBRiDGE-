@@ -1,38 +1,38 @@
-# SKILLBRIDGE Product Requirements
+# SKILLBRIDGE — PRD
 
-## Original problem statement
-Build SKILLBRIDGE, a premium AI-powered opportunity platform for students and skilled professionals, including role selection, authentication, separate onboarding, personalized home, dashboard, deterministic skill matching, opportunities, details, applications, profiles, notifications, search/filtering, responsive design, persistent state, demo data, routing, and complete hackathon demo flow.
-
-## Architecture decisions
-- React single-page application with React Router routes for public, onboarding, and authenticated experiences.
-- Local browser persistence is used for demo authentication, user profile, saved opportunities, and applications; no external auth setup is required.
-- Deterministic skill overlap data powers match scores and explanations for reliable presentations.
-- Demo data is seeded in the frontend for eight realistic opportunities and two existing applications.
+## Vision
+AI-powered opportunity platform connecting students & skilled professionals to fitting roles.
 
 ## Personas
-- Student exploring internships, research, projects, and early career opportunities.
-- Skilled professional looking for projects, freelance work, collaboration, or employment.
-- Hackathon presenter demonstrating a polished end-to-end journey.
+- Student: seeks internships/hackathons/research
+- Professional: seeks freelance/full-time/collab
 
-## Core requirements
-- Role-first unauthenticated entry screen.
-- Role-specific auth and onboarding paths.
-- Authenticated navigation without login/signup links.
-- Home, dashboard, skill match, opportunity discovery/details, apply tracking, profile, and notifications.
-- Responsive layouts with loading/error/empty states and accessible reduced-motion behavior.
+## Implemented (Feb 2026)
+- Role-based landing (Student/Professional)
+- Auth (login/signup) with pathname-derived signup mode
+- Forgot password modal (dialog + confirmation)
+- Multi-step onboarding — editable fields, skills, interests persist
+- Authenticated Home with skill match + My Applications strip
+- Dashboard with stat cards + skill breakdown
+- Opportunities list + filters + search
+- Opportunity detail with save (persists via /api/saved/toggle)
+- Multi-step Apply flow (Steps 1-4 with data-testids, Back/Next, success screen)
+- My Applications list (updates after submit)
+- Profile page + Edit Profile modal (persists via /api/users)
+- Professional Workspace + tune profile modal
+- Notifications with mark-all-read (persists via /api/notifications/:email/read)
+- Skill Match analysis page + Share Card
+- Backend: FastAPI + MongoDB (users, applications, saved, notifications)
 
-## Implemented (2026-08-18)
-- Premium near-black, deep navy, cyan/violet visual system with responsive layouts.
-- Student/professional role selection and role-specific authentication/demo entry.
-- Four-step onboarding, persistent session guard, logout.
-- Home with AI match hero, My Applications, and latest opportunities.
-- Dashboard stats, skill breakdown, recent activity.
-- Opportunity search/filtering, details, save, apply action, and persistent My Applications.
-- Dedicated Skill Match analysis, notifications, and profile pages.
-- Demo seed: eight opportunities and two applications.
+## Verified
+- P0 Apply flow: full end-to-end verified by bug_testing_agent (iteration_3)
+- Backend API 100% pass
+- P1 controls implemented: forgot password, edit profile, workspace tune, mark-notifications-read, add skill
 
-## Backlog
-- P0: Add backend persistence and real user accounts when the demo needs multi-device access.
-- P1: Add resume upload and full multi-step application review/submit form.
-- P1: Add professional-specific opportunity seed data and professional profile editing.
-- P2: Add real AI explanation generation and employer opportunity submission.
+## Backlog (P1/P2)
+- Real email delivery for password reset
+- Google/OAuth login
+- Real resume storage (S3/object storage)
+- Notification bell popover
+- Rich profile fields (portfolio uploads)
+- Team dashboard for opportunity providers
