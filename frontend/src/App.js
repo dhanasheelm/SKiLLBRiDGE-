@@ -27,11 +27,521 @@ function Brand({ compact = false }) { return <Link to="/home" className={`brand 
 function Landing() { const nav = useNavigate(); const choose = (role) => { save("skillbridge_role", role); nav(`/${role}/login`); }; return <main className="landing page-grid" data-testid="role-selection-page"><div className="landing-nav"><Brand compact /><span className="eyebrow"><span className="pulse-dot" /> AI-POWERED OPPORTUNITY PLATFORM</span></div><section className="landing-hero"><div className="hero-copy"><div className="eyebrow">BRIDGE YOUR NEXT CHAPTER</div><h1>Bridge your skills.<br /><em>Discover</em> your opportunities.</h1><p>AI-powered opportunities built around what you can do.</p><div className="hero-note"><Sparkles size={16} /> Curated for your potential, not just your resume.</div></div><div className="role-grid"><RoleCard role="student" icon={<Compass />} title="I'm a Student" text="Discover internships, hackathons, projects, competitions, research opportunities and career experiences matched to your skills." onClick={() => choose("student")} /><RoleCard role="professional" icon={<BriefcaseBusiness />} title="I'm a Skilled Professional" text="Showcase your expertise and discover projects, freelance work, collaborations and professional opportunities that match your skills." onClick={() => choose("professional")} /></div></section><div className="landing-footer"><span>Trusted by ambitious people building what’s next</span><span className="footer-line" /><span>01 / 02</span></div></main>; }
 function RoleCard({ role, icon, title, text, onClick }) { return <button className={`role-card ${role}`} onClick={onClick} data-testid={`${role}-role-card`}><div className="role-card-top"><div className="icon-box">{icon}</div><span className="arrow-circle"><ArrowRight size={18} /></span></div><div><span className="card-kicker">{role === "student" ? "FOR THE CURIOUS" : "FOR THE CAPABLE"}</span><h2>{title}</h2><p>{text}</p></div><span className="card-cta">Continue as {role === "student" ? "Student" : "Skilled Professional"} <ArrowRight size={15} /></span></button>; }
 
-function Auth({ role }) { const nav = useNavigate(); const location = useLocation(); const [signup, setSignup] = useState(location.pathname.includes("/signup")); const [demo, setDemo] = useState(false); const [error, setError] = useState(""); const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" }); const [forgot, setForgot] = useState(false); const [forgotEmail, setForgotEmail] = useState(""); const [forgotSent, setForgotSent] = useState(false); const roleName = role === "student" ? "Student" : "Skilled Professional"; const submit = (e) => { e.preventDefault(); if (!form.email || !form.password || (signup && (!form.name || form.password !== form.confirm))) return setError(signup && form.password !== form.confirm ? "Passwords do not match." : "Please complete all required fields."); const user = signup ? { ...demoUser, name: form.name || demoUser.name, email: form.email, role } : { ...demoUser, role }; save("skillbridge_user", user); syncApi("/users", { method: "POST", body: JSON.stringify(user) }); if (!read("skillbridge_apps", null)) save("skillbridge_apps", defaultApps); nav("/onboarding"); }; const useDemo = () => { const user = { ...demoUser, role, ...(role === "professional" ? { name: "Maya Chen", email: "maya@demo.com", goal: "Product Design Lead", degree: "8 years experience", college: "Independent Product Studio", skills: ["Figma", "UI/UX", "Communication"] } : {}) }; save("skillbridge_user", user); syncApi("/users", { method: "POST", body: JSON.stringify(user) }); save("skillbridge_apps", defaultApps); setDemo(true); setTimeout(() => nav("/home"), 350); }; const sendReset = () => { if (!forgotEmail) return; setForgotSent(true); }; const closeForgot = () => { setForgot(false); setForgotSent(false); setForgotEmail(""); }; return <main className="auth-page"><div className="auth-aside"><Brand /><div className="auth-aside-copy"><span className="eyebrow">{roleName.toUpperCase()} JOURNEY</span><h1>Make your next move <em>matter.</em></h1><p>One profile. Better-fit opportunities. A bridge from what you know to what’s possible.</p><div className="proof"><div className="avatar-stack"><span>AM</span><span>RK</span><span>+</span></div><b>Built for people in motion</b></div></div></div><div className="auth-panel"><Link className="back-link" to="/"><ArrowRight size={15} className="back-icon" /> Back to role selection</Link><div className="auth-form-wrap"><div className="eyebrow">WELCOME TO SKILLBRIDGE</div><h2>{signup ? "Create your profile" : "Welcome back"}</h2><p className="muted">{signup ? `Start your ${roleName.toLowerCase()} journey today.` : "Your next opportunity is closer than you think."}</p>{error && <div className="form-error" data-testid="auth-error"><X size={15} />{error}</div>}<form onSubmit={submit} data-testid="auth-form">{signup && <Field label="Full name" value={form.name} onChange={v => setForm({ ...form, name: v })} test="auth-name-input" placeholder="Your full name" />}<Field label="Email address" value={form.email} onChange={v => setForm({ ...form, email: v })} test="auth-email-input" placeholder="you@example.com" type="email" /><Field label="Password" value={form.password} onChange={v => setForm({ ...form, password: v })} test="auth-password-input" placeholder="At least 8 characters" type="password" />{signup && <Field label="Confirm password" value={form.confirm} onChange={v => setForm({ ...form, confirm: v })} test="auth-confirm-input" placeholder="Repeat your password" type="password" />}<button className="primary-btn full" type="submit" data-testid="auth-submit-button">{signup ? "Create account" : "Sign in"}<ArrowRight size={17} /></button></form><button className="demo-btn" onClick={useDemo} data-testid="demo-access-button"><Zap size={16} /> Enter demo as {roleName}<span>Instant access</span></button><div className="auth-switch">{signup ? "Already have an account?" : "New to SKILLBRIDGE?"} <button onClick={() => { setSignup(!signup); setError(""); }} data-testid="auth-mode-toggle">{signup ? "Sign in" : "Create an account"}</button></div><button className="forgot" onClick={() => setForgot(true)} data-testid="forgot-password-button">Forgot password?</button>{demo && <div className="success-note" data-testid="demo-success-message">Welcome back — loading your workspace.</div>}</div></div><Modal open={forgot} onClose={closeForgot} testid="forgot-password-modal" eyebrow="RESET LINK" title={forgotSent ? "Check your inbox" : "Send yourself a reset"}>{forgotSent ? <><p className="muted">A secure reset link is on its way to <b style={{color:"var(--white)"}}>{forgotEmail}</b>. Follow the link within 15 minutes.</p><button className="primary-btn full" onClick={closeForgot} data-testid="forgot-done-button">Got it<Check size={17} /></button></> : <><p className="muted">We’ll send a one-time reset link to your email.</p><Field label="Email address" value={forgotEmail} onChange={setForgotEmail} test="forgot-email-input" placeholder="you@example.com" type="email" /><button className="primary-btn full" onClick={sendReset} data-testid="forgot-submit-button">Send reset link<ArrowRight size={17} /></button></>}</Modal></main>; }
+function Auth({ role }) {
+  const nav = useNavigate();
+  const location = useLocation();
+
+  const [signup, setSignup] = useState(
+    location.pathname.includes("/signup")
+  );
+
+  const [demo, setDemo] = useState(false);
+  const [error, setError] = useState("");
+
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirm: ""
+  });
+
+  const [forgot, setForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const roleName =
+    role === "student" ? "Student" : "Skilled Professional";
+
+  const submit = (e) => {
+    e.preventDefault();
+    setError("");
+
+    const email = form.email.trim().toLowerCase();
+
+    // -----------------------------
+    // BASIC VALIDATION
+    // -----------------------------
+
+    if (!email || !form.password) {
+      setError("Please complete all required fields.");
+      return;
+    }
+
+    if (signup && !form.name.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (signup && form.password !== form.confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    // -----------------------------
+    // GET REGISTERED ACCOUNTS
+    // -----------------------------
+
+    const accounts = read("skillbridge_accounts", {});
+
+    // =====================================================
+    // SIGN UP
+    // =====================================================
+
+    if (signup) {
+      // Check whether account already exists
+      if (accounts[email]) {
+        setError(
+          "An account with this email already exists. Please sign in."
+        );
+        return;
+      }
+
+      const user = {
+        ...demoUser,
+        name: form.name.trim(),
+        email,
+        role,
+        skills: [],
+        interests: [],
+        college: "",
+        degree: "",
+        location: "",
+        goal: ""
+      };
+
+      // Save account permanently
+      accounts[email] = {
+        password: form.password,
+        role,
+        profile: user
+      };
+
+      save("skillbridge_accounts", accounts);
+
+      // Save currently logged-in user
+      save("skillbridge_user", user);
+
+      // Keep backend sync
+      syncApi("/users", {
+        method: "POST",
+        body: JSON.stringify(user)
+      });
+
+      // First-time user → onboarding
+      nav("/onboarding");
+
+      return;
+    }
+
+    // =====================================================
+    // LOGIN
+    // =====================================================
+
+    const account = accounts[email];
+
+    // No registered account
+    if (!account) {
+      setError(
+        "No account found with this email. Please create an account first."
+      );
+      return;
+    }
+
+    // Wrong password
+    if (account.password !== form.password) {
+      setError("Incorrect password. Please try again.");
+      return;
+    }
+
+    // Check role
+    if (account.role && account.role !== role) {
+      setError(
+        `This account is registered as a ${
+          account.role === "student"
+            ? "Student"
+            : "Skilled Professional"
+        }.`
+      );
+      return;
+    }
+
+    // Restore saved profile
+    const user = {
+      ...demoUser,
+      ...(account.profile || {}),
+      email,
+      role: account.role || role
+    };
+
+    // Save current session
+    save("skillbridge_user", user);
+
+    // Sync backend
+    syncApi("/users", {
+      method: "POST",
+      body: JSON.stringify(user)
+    });
+
+    // Existing user → DIRECTLY HOME
+    nav("/home");
+  };
+
+  // =====================================================
+  // DEMO LOGIN
+  // =====================================================
+
+  const useDemo = () => {
+    const user = {
+      ...demoUser,
+      role,
+      ...(role === "professional"
+        ? {
+            name: "Maya Chen",
+            email: "maya@demo.com",
+            goal: "Product Design Lead",
+            degree: "8 years experience",
+            college: "Independent Product Studio",
+            skills: ["Figma", "UI/UX", "Communication"]
+          }
+        : {})
+    };
+
+    save("skillbridge_user", user);
+
+    syncApi("/users", {
+      method: "POST",
+      body: JSON.stringify(user)
+    });
+
+    save("skillbridge_apps", defaultApps);
+
+    setDemo(true);
+
+    setTimeout(() => {
+      nav("/home");
+    }, 350);
+  };
+
+  // =====================================================
+  // FORGOT PASSWORD
+  // =====================================================
+
+  const sendReset = () => {
+    if (!forgotEmail.trim()) {
+      return;
+    }
+
+    setForgotSent(true);
+  };
+
+  const closeForgot = () => {
+    setForgot(false);
+    setForgotSent(false);
+    setForgotEmail("");
+  };
+
+  return (
+    <main className="auth-page">
+
+      <div className="auth-aside">
+
+        <Brand />
+
+        <div className="auth-aside-copy">
+
+          <span className="eyebrow">
+            {roleName.toUpperCase()} JOURNEY
+          </span>
+
+          <h1>
+            Make your next move <em>matter.</em>
+          </h1>
+
+          <p>
+            One profile. Better-fit opportunities. A bridge from
+            what you know to what’s possible.
+          </p>
+
+          <div className="proof">
+
+            <div className="avatar-stack">
+              <span>AM</span>
+              <span>RK</span>
+              <span>+</span>
+            </div>
+
+            <b>Built for people in motion</b>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div className="auth-panel">
+
+        <Link className="back-link" to="/">
+          <ArrowRight
+            size={15}
+            className="back-icon"
+          />
+
+          Back to role selection
+        </Link>
+
+        <div className="auth-form-wrap">
+
+          <div className="eyebrow">
+            WELCOME TO SKILLBRIDGE
+          </div>
+
+          <h2>
+            {signup
+              ? "Create your profile"
+              : "Welcome back"}
+          </h2>
+
+          <p className="muted">
+            {signup
+              ? `Start your ${roleName.toLowerCase()} journey today.`
+              : "Your next opportunity is closer than you think."}
+          </p>
+
+          {error && (
+            <div
+              className="form-error"
+              data-testid="auth-error"
+            >
+              <X size={15} />
+              {error}
+            </div>
+          )}
+
+          <form
+            onSubmit={submit}
+            data-testid="auth-form"
+          >
+
+            {signup && (
+              <Field
+                label="Full name"
+                value={form.name}
+                onChange={(v) =>
+                  setForm({
+                    ...form,
+                    name: v
+                  })
+                }
+                test="auth-name-input"
+                placeholder="Your full name"
+              />
+            )}
+
+            <Field
+              label="Email address"
+              value={form.email}
+              onChange={(v) =>
+                setForm({
+                  ...form,
+                  email: v
+                })
+              }
+              test="auth-email-input"
+              placeholder="you@example.com"
+              type="email"
+            />
+
+            <Field
+              label="Password"
+              value={form.password}
+              onChange={(v) =>
+                setForm({
+                  ...form,
+                  password: v
+                })
+              }
+              test="auth-password-input"
+              placeholder="At least 8 characters"
+              type="password"
+            />
+
+            {signup && (
+              <Field
+                label="Confirm password"
+                value={form.confirm}
+                onChange={(v) =>
+                  setForm({
+                    ...form,
+                    confirm: v
+                  })
+                }
+                test="auth-confirm-input"
+                placeholder="Repeat your password"
+                type="password"
+              />
+            )}
+
+            <button
+              className="primary-btn full"
+              type="submit"
+              data-testid="auth-submit-button"
+            >
+              {signup
+                ? "Create account"
+                : "Sign in"}
+
+              <ArrowRight size={17} />
+            </button>
+
+          </form>
+
+          <button
+            className="demo-btn"
+            onClick={useDemo}
+            data-testid="demo-access-button"
+          >
+            <Zap size={16} />
+
+            Enter demo as {roleName}
+
+            <span>Instant access</span>
+          </button>
+
+          <div className="auth-switch">
+
+            {signup
+              ? "Already have an account?"
+              : "New to SKILLBRIDGE?"}
+
+            {" "}
+
+            <button
+              onClick={() => {
+                setSignup(!signup);
+                setError("");
+              }}
+              data-testid="auth-mode-toggle"
+            >
+              {signup
+                ? "Sign in"
+                : "Create an account"}
+            </button>
+
+          </div>
+
+          <button
+            className="forgot"
+            onClick={() => setForgot(true)}
+            data-testid="forgot-password-button"
+          >
+            Forgot password?
+          </button>
+
+          {demo && (
+            <div
+              className="success-note"
+              data-testid="demo-success-message"
+            >
+              Welcome back — loading your workspace.
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
+      <Modal
+        open={forgot}
+        onClose={closeForgot}
+        testid="forgot-password-modal"
+        eyebrow="RESET LINK"
+        title={
+          forgotSent
+            ? "Check your inbox"
+            : "Send yourself a reset"
+        }
+      >
+
+        {forgotSent ? (
+          <>
+            <p className="muted">
+              A secure reset link is on its way to{" "}
+              <b style={{ color: "var(--white)" }}>
+                {forgotEmail}
+              </b>
+              . Follow the link within 15 minutes.
+            </p>
+
+            <button
+              className="primary-btn full"
+              onClick={closeForgot}
+              data-testid="forgot-done-button"
+            >
+              Got it
+              <Check size={17} />
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="muted">
+              We’ll send a one-time reset link to your email.
+            </p>
+
+            <Field
+              label="Email address"
+              value={forgotEmail}
+              onChange={setForgotEmail}
+              test="forgot-email-input"
+              placeholder="you@example.com"
+              type="email"
+            />
+
+            <button
+              className="primary-btn full"
+              onClick={sendReset}
+              data-testid="forgot-submit-button"
+            >
+              Send reset link
+              <ArrowRight size={17} />
+            </button>
+          </>
+        )}
+
+      </Modal>
+
+    </main>
+  );
+}
 function Field({ label, value, onChange, test, placeholder, type = "text" }) { return <label className="field"><span>{label}</span><input data-testid={test} type={type} value={value} placeholder={placeholder} onChange={e => onChange(e.target.value)} /></label>; }
 function Modal({ open, onClose, title, eyebrow, testid, children, footer }) { if (!open) return null; return <div className="modal-backdrop" data-testid={testid} onClick={e => e.target === e.currentTarget && onClose()}><div className="modal-panel"><button className="modal-close" onClick={onClose} data-testid={`${testid}-close`}><X size={17} /></button>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2>{title}</h2>{children}{footer && <div className="modal-footer">{footer}</div>}</div></div>; }
 
-function Onboarding() { const nav = useNavigate(); const stored = read("skillbridge_user", demoUser); const [user, setUser] = useState(stored); const [step, setStep] = useState(1); const [selected, setSelected] = useState(user.skills || []); const [interests, setInterests] = useState(user.interests || []); const professional = user.role === "professional"; const update = (k, v) => setUser({ ...user, [k]: v }); const toggleInterest = (x) => setInterests(interests.includes(x) ? interests.filter(y => y !== x) : [...interests, x]); const next = () => { if (step < 4) return setStep(step + 1); const final = { ...user, skills: selected, interests }; save("skillbridge_user", final); syncApi("/users", { method: "POST", body: JSON.stringify(final) }); nav("/home"); }; return <main className="onboarding page-grid"><div className="onboard-top"><Brand compact /><span className="step-count">STEP 0{step} <span>/ 04</span></span></div><section className="onboard-content"><div className="onboard-intro"><span className="eyebrow">{professional ? "PROFESSIONAL SETUP" : "STUDENT SETUP"}</span><h1>Let’s make your<br /><em>profile useful.</em></h1><p>A few thoughtful details help us find opportunities that fit the real you.</p></div><div className="onboard-form"><div className="progress-bar"><span style={{ width: `${step * 25}%` }} /></div>{step === 1 && <><h2>First, the basics</h2><p className="muted">Tell us how to introduce you.</p><Field label="Full name" value={user.name} onChange={v => update("name", v)} test="onboarding-name-input" placeholder="Your full name" /><Field label={professional ? "Professional title" : "College / university"} value={user.college} onChange={v => update("college", v)} test="onboarding-title-input" placeholder="Add a detail" /><div className="two-fields"><Field label="Location" value={user.location} onChange={v => update("location", v)} test="onboarding-location-input" placeholder="City, country" /><Field label={professional ? "Years of experience" : "Current year"} value={user.degree} onChange={v => update("degree", v)} test="onboarding-experience-input" placeholder="Choose" /></div></>}{step === 2 && <><h2>What are you good at?</h2><p className="muted">Pick the skills you want opportunities to notice.</p><div className="selected-chips">{selected.map(s => <span key={s}>{s}<button onClick={() => setSelected(selected.filter(x => x !== s))} data-testid={`remove-skill-${s.toLowerCase().replaceAll("/", "-")}`}><X size={13} /></button></span>)}</div><div className="skill-picker">{skills.map(s => <button className={selected.includes(s) ? "chosen" : ""} onClick={() => setSelected(selected.includes(s) ? selected.filter(x => x !== s) : [...selected, s])} key={s} data-testid={`skill-option-${s.toLowerCase().replaceAll("/", "-")}`}>{selected.includes(s) && <Check size={14} />}{s}</button>)}</div></>}{step === 3 && <><h2>{professional ? "How do you want to work?" : "What pulls you forward?"}</h2><p className="muted">Choose a few directions. You can always change them.</p><div className="interest-list">{(professional ? ["Full-time", "Part-time", "Freelance", "Contract", "Project-based", "Collaboration"] : ["Internships", "Hackathons", "Projects", "Freelancing", "Research", "Competitions", "Scholarships", "Workshops"]).map(x => <button className={interests.includes(x) ? "chosen" : ""} key={x} onClick={() => toggleInterest(x)} data-testid={`interest-option-${x.toLowerCase().replaceAll(" ", "-")}`}><span>{x}</span>{interests.includes(x) && <Check size={15} />}</button>)}</div></>}{step === 4 && <div className="ready-state"><div className="ready-icon"><Check /></div><h2>Your profile is ready.</h2><p className="muted">We’ll use your profile to surface a sharper set of possibilities.</p><div className="completion"><span>Profile completion</span><b>{Math.min(95, 60 + selected.length * 4 + interests.length * 3)}%</b><div><i style={{ width: `${Math.min(95, 60 + selected.length * 4 + interests.length * 3)}%` }} /></div></div></div>}<button className="primary-btn full" onClick={next} data-testid="onboarding-next-button">{step === 4 ? "Enter SKILLBRIDGE" : "Continue"}<ArrowRight size={17} /></button></div></section></main>; }
+function Onboarding() { const nav = useNavigate(); const stored = read("skillbridge_user", demoUser); const [user, setUser] = useState(stored); const [step, setStep] = useState(1); const [selected, setSelected] = useState(user.skills || []); const [interests, setInterests] = useState(user.interests || []); const professional = user.role === "professional"; const update = (k, v) => setUser({ ...user, [k]: v }); const toggleInterest = (x) => setInterests(interests.includes(x) ? interests.filter(y => y !== x) : [...interests, x]); const next = () => { if (step < 4) return setStep(step + 1); const final = { ...user, skills: selected, interests }; save("skillbridge_user", final);
+
+// Also update the permanent account profile
+const accounts = read("skillbridge_accounts", {});
+const email = final.email?.trim().toLowerCase();
+
+if (email && accounts[email]) {
+  accounts[email] = {
+    ...accounts[email],
+    role: final.role,
+    profile: final
+  };
+
+  save("skillbridge_accounts", accounts);
+}
+
+syncApi("/users", {
+  method: "POST",
+  body: JSON.stringify(final)
+});
+
+nav("/home");}; return <main className="onboarding page-grid"><div className="onboard-top"><Brand compact /><span className="step-count">STEP 0{step} <span>/ 04</span></span></div><section className="onboard-content"><div className="onboard-intro"><span className="eyebrow">{professional ? "PROFESSIONAL SETUP" : "STUDENT SETUP"}</span><h1>Let’s make your<br /><em>profile useful.</em></h1><p>A few thoughtful details help us find opportunities that fit the real you.</p></div><div className="onboard-form"><div className="progress-bar"><span style={{ width: `${step * 25}%` }} /></div>{step === 1 && <><h2>First, the basics</h2><p className="muted">Tell us how to introduce you.</p><Field label="Full name" value={user.name} onChange={v => update("name", v)} test="onboarding-name-input" placeholder="Your full name" /><Field label={professional ? "Professional title" : "College / university"} value={user.college} onChange={v => update("college", v)} test="onboarding-title-input" placeholder="Add a detail" /><div className="two-fields"><Field label="Location" value={user.location} onChange={v => update("location", v)} test="onboarding-location-input" placeholder="City, country" /><Field label={professional ? "Years of experience" : "Current year"} value={user.degree} onChange={v => update("degree", v)} test="onboarding-experience-input" placeholder="Choose" /></div></>}{step === 2 && <><h2>What are you good at?</h2><p className="muted">Pick the skills you want opportunities to notice.</p><div className="selected-chips">{selected.map(s => <span key={s}>{s}<button onClick={() => setSelected(selected.filter(x => x !== s))} data-testid={`remove-skill-${s.toLowerCase().replaceAll("/", "-")}`}><X size={13} /></button></span>)}</div><div className="skill-picker">{skills.map(s => <button className={selected.includes(s) ? "chosen" : ""} onClick={() => setSelected(selected.includes(s) ? selected.filter(x => x !== s) : [...selected, s])} key={s} data-testid={`skill-option-${s.toLowerCase().replaceAll("/", "-")}`}>{selected.includes(s) && <Check size={14} />}{s}</button>)}</div></>}{step === 3 && <><h2>{professional ? "How do you want to work?" : "What pulls you forward?"}</h2><p className="muted">Choose a few directions. You can always change them.</p><div className="interest-list">{(professional ? ["Full-time", "Part-time", "Freelance", "Contract", "Project-based", "Collaboration"] : ["Internships", "Hackathons", "Projects", "Freelancing", "Research", "Competitions", "Scholarships", "Workshops"]).map(x => <button className={interests.includes(x) ? "chosen" : ""} key={x} onClick={() => toggleInterest(x)} data-testid={`interest-option-${x.toLowerCase().replaceAll(" ", "-")}`}><span>{x}</span>{interests.includes(x) && <Check size={15} />}</button>)}</div></>}{step === 4 && <div className="ready-state"><div className="ready-icon"><Check /></div><h2>Your profile is ready.</h2><p className="muted">We’ll use your profile to surface a sharper set of possibilities.</p><div className="completion"><span>Profile completion</span><b>{Math.min(95, 60 + selected.length * 4 + interests.length * 3)}%</b><div><i style={{ width: `${Math.min(95, 60 + selected.length * 4 + interests.length * 3)}%` }} /></div></div></div>}<button className="primary-btn full" onClick={next} data-testid="onboarding-next-button">{step === 4 ? "Enter SKILLBRIDGE" : "Continue"}<ArrowRight size={17} /></button></div></section></main>; }
 
 function Protected({ children }) { return read("skillbridge_user", null) ? children : <Navigate to="/" replace />; }
 function Layout({ children }) { const loc = useLocation(); const nav = useNavigate(); const user = read("skillbridge_user", demoUser); const [menu, setMenu] = useState(false); const logout = () => { localStorage.removeItem("skillbridge_user"); nav("/"); }; const links = [["/home", "Home", HomeIcon], ["/dashboard", "Dashboard", Layers3], ["/opportunities", "Opportunities", Compass], ["/applications", "My Applications", FileCheck2], ...(user.role === "professional" ? [["/workspace", "Workspace", BriefcaseBusiness]] : [])]; return <div className="app-shell"><header className="app-nav"><Brand compact /><nav className={menu ? "open" : ""}>{links.map(([path, label, Icon]) => <Link className={loc.pathname === path ? "active" : ""} to={path} key={path} data-testid={`nav-${label.toLowerCase().replaceAll(" ", "-")}-link`}><Icon size={16} />{label}</Link>)}</nav><div className="nav-actions"><Link to="/notifications" className="notification-btn" data-testid="notifications-link"><Bell size={18} /><span /></Link><Link to="/profile" className="profile-trigger" data-testid="profile-menu-button"><span className="avatar">{user.role === "professional" ? "MC" : "AM"}</span><span className="profile-name">{user.name}</span><ChevronDown size={15} /></Link><button className="mobile-menu" onClick={() => setMenu(!menu)} data-testid="mobile-menu-button"><Menu /></button></div></header>{children}<button className="logout-fab" onClick={logout} data-testid="logout-button"><LogOut size={14} /> Log out</button></div>; }
