@@ -13,8 +13,15 @@ from starlette.middleware.cors import CORSMiddleware
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
-client = AsyncIOMotorClient(os.environ["MONGO_URL"])
-db = client[os.environ["DB_NAME"]]
+mongo_url = os.getenv("MONGO_URL")
+db_name = os.getenv("DB_NAME")
+if not mongo_url or not db_name:
+    raise RuntimeError(
+        "Missing database configuration. Set MONGO_URL and DB_NAME in backend/.env "
+        "(see backend/.env.example)."
+    )
+client = AsyncIOMotorClient(mongo_url)
+db = client[db_name]
 app = FastAPI(title="SKILLBRIDGE API")
 api = APIRouter(prefix="/api")
 
