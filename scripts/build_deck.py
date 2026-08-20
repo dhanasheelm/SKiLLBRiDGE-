@@ -164,7 +164,7 @@ def footer_line(slide):
     add_text(slide, Inches(0.6), SH - Inches(0.5), Inches(8), Inches(0.3), "SKILLBRIDGE  ·  BRIDGE YOUR SKILLS. DISCOVER YOUR OPPORTUNITIES.", size=9, color=MUTED, font="Consolas", letter_spacing=180)
 
 
-TOTAL = 12
+TOTAL = 11
 n = 1
 
 
@@ -509,35 +509,7 @@ for i, (title, color, items) in enumerate(roadmap):
 
 
 # =====================================================================
-# 11. TEAM
-# =====================================================================
-s11 = new_slide("10 · THE TEAM")
-add_text(s11, Inches(0.6), Inches(1.55), Inches(12), Inches(1.4), "Small team. Full stack. One sprint.", size=40, bold=True, color=WHITE)
-
-team = [
-    ("BUILDER 1", "Full-stack lead — React, FastAPI, Mongo, tests"),
-    ("BUILDER 2", "AI + product logic — match engine, personalisation"),
-    ("BUILDER 3", "Design & motion — dark-mode system, animations"),
-    ("BUILDER 4", "Integrations — Resend email, object storage, deploys"),
-]
-top = Inches(3.15)
-card_w = (SW - Inches(0.6) * 2 - Inches(0.15) * 3) / 4
-for i, (role, blurb) in enumerate(team):
-    left = Inches(0.6) + i * (card_w + Inches(0.15))
-    add_rect(s11, left, top, card_w, Inches(3.4))
-    # avatar
-    av = s11.shapes.add_shape(MSO_SHAPE.OVAL, left + Inches(0.35), top + Inches(0.5), Inches(1.6), Inches(1.6))
-    av.fill.solid(); av.fill.fore_color.rgb = [VIOLET, CYAN, PINK, AMBER][i]
-    av.line.fill.background(); av.shadow.inherit = False
-    add_text(s11, left + Inches(0.35), top + Inches(1.0), Inches(1.6), Inches(0.6), ["B1", "B2", "B3", "B4"][i], size=28, bold=True, color=BG, align=PP_ALIGN.CENTER)
-    add_text(s11, left + Inches(0.3), top + Inches(2.35), card_w - Inches(0.6), Inches(0.4), role, size=11, bold=True, color=WHITE, font="Consolas", letter_spacing=200)
-    add_text(s11, left + Inches(0.3), top + Inches(2.7), card_w - Inches(0.6), Inches(0.9), blurb, size=11, color=MUTED, line_spacing=1.5)
-
-add_text(s11, Inches(0.6), Inches(6.75), Inches(12), Inches(0.4), "Replace with your teammates’ names, roles and photos before presenting.", size=11, color=MUTED, font="Consolas", letter_spacing=140)
-
-
-# =====================================================================
-# 12. THANK YOU / CTA
+# 11. THANK YOU / CTA
 # =====================================================================
 s12 = prs.slides.add_slide(BLANK)
 add_bg(s12)
@@ -584,7 +556,7 @@ s12.shapes.add_picture(QR_PATH, qr_pad_left + Inches(0.1), qr_pad_top + Inches(0
 add_text(s12, qr_box_left + Inches(0.25), qr_pad_top + qr_pad_size + Inches(0.15), qr_box_w - Inches(0.5), Inches(0.5), "Try it while we talk.", size=13, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
 add_text(s12, qr_box_left + Inches(0.25), qr_pad_top + qr_pad_size + Inches(0.5), qr_box_w - Inches(0.5), Inches(0.5), DEMO_URL.replace("https://", ""), size=9, color=CYAN, font="Consolas", align=PP_ALIGN.CENTER, letter_spacing=100)
 
-slide_number(s12, 12, TOTAL)
+slide_number(s12, 11, TOTAL)
 
 
 out = "/app/SKILLBRIDGE_Hackathon_Deck.pptx"
