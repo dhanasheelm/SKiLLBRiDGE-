@@ -403,24 +403,25 @@ tiers = [
     ("BACKEND", CYAN, "FastAPI + Motor (async)\nMongoDB collections:\n · users · opportunities\n · applications · saved\n · notifications · portfolio\nSeeded opportunities on startup"),
     ("INTEGRATIONS", PINK, "Resend — real reset email\nEmergent Object Storage —\n   portfolio uploads (PDF / img)\nPydantic v2 payload models\nCORS + supervisor-managed"),
 ]
+# three tier cards
 top = Inches(3.15)
 col_w = Inches(4.05)
 gap = Inches(0.15)
 for i, (title, color, body) in enumerate(tiers):
     left = Inches(0.6) + i * (col_w + gap)
-    add_rect(s7, left, top, col_w, Inches(3.5))
+    add_rect(s7, left, top, col_w, Inches(3.1))
     add_eyebrow(s7, left + Inches(0.3), top + Inches(0.3), title, color=color, width=col_w)
-    add_text(s7, left + Inches(0.3), top + Inches(0.7), col_w - Inches(0.6), Inches(2.6), body, size=13, color=MUTED, line_spacing=1.55)
+    add_text(s7, left + Inches(0.3), top + Inches(0.7), col_w - Inches(0.6), Inches(2.3), body, size=12.5, color=MUTED, line_spacing=1.5)
 
 # small stats row
 stats = [("18", "Pytest cases pass"), ("10", "Seeded opportunities"), ("6", "Application statuses"), ("0", "Console errors")]
-top = Inches(6.75)
+top = Inches(6.4)
 w = Inches(3.02)
 for i, (v, l) in enumerate(stats):
     left = Inches(0.6) + i * (w + Inches(0.12))
-    add_rect(s7, left, top, w, Inches(0.55), fill=SURFACE2)
-    add_text(s7, left + Inches(0.2), top + Inches(0.1), Inches(0.9), Inches(0.4), v, size=17, bold=True, color=CYAN)
-    add_text(s7, left + Inches(1.1), top + Inches(0.13), w - Inches(1.2), Inches(0.4), l, size=10, color=MUTED, font="Consolas", letter_spacing=140)
+    add_rect(s7, left, top, w, Inches(0.5), fill=SURFACE2)
+    add_text(s7, left + Inches(0.2), top + Inches(0.09), Inches(0.7), Inches(0.4), v, size=16, bold=True, color=CYAN)
+    add_text(s7, left + Inches(0.95), top + Inches(0.15), w - Inches(1.05), Inches(0.4), l, size=9.5, color=MUTED, font="Consolas", letter_spacing=140)
 
 
 # =====================================================================
@@ -469,15 +470,15 @@ diffs = [
     ("Judges can break it", "Change your skills → the app re-personalises live. Upload a real PDF → owners see it in the pipeline. Move a status → applicant is notified."),
     ("Production-lean", "10 seeded opportunities, deterministic match, real object storage, real email API, 18 backend tests, 0 console errors."),
 ]
-top = Inches(2.85)
-h = Inches(1.05)
+top = Inches(2.75)
+h = Inches(0.95)
 for i, (title, body) in enumerate(diffs):
-    y = top + i * (h + Inches(0.1))
+    y = top + i * (h + Inches(0.08))
     dot = s9.shapes.add_shape(MSO_SHAPE.OVAL, Inches(0.6), y + Inches(0.28), Inches(0.35), Inches(0.35))
     dot.fill.background(); dot.line.color.rgb = CYAN; dot.line.width = Pt(1.2); dot.shadow.inherit = False
     add_text(s9, Inches(0.6), y + Inches(0.26), Inches(0.35), Inches(0.35), str(i + 1), size=11, bold=True, color=CYAN, align=PP_ALIGN.CENTER)
-    add_text(s9, Inches(1.15), y + Inches(0.15), Inches(4), Inches(0.5), title, size=17, bold=True, color=WHITE)
-    add_text(s9, Inches(5.4), y + Inches(0.25), Inches(7.3), Inches(0.9), body, size=13, color=MUTED, line_spacing=1.5)
+    add_text(s9, Inches(1.15), y + Inches(0.15), Inches(4), Inches(0.5), title, size=16, bold=True, color=WHITE)
+    add_text(s9, Inches(5.4), y + Inches(0.2), Inches(7.3), Inches(0.85), body, size=12.5, color=MUTED, line_spacing=1.5)
 
 
 # =====================================================================
