@@ -138,6 +138,26 @@ class StatusUpdatePayload(BaseModel):
     owner_email: str
 
 
+class OpportunityPayload(BaseModel):
+    title: str
+    org: str
+    type: str = "Internship"
+    location: str = "Remote"
+    mode: str = "Remote"
+    duration: str = "3 months"
+    stipend: str = "Unpaid / discuss"
+    openings: int = 1
+    deadline: str
+    skills: List[str] = Field(default_factory=list)
+    description: str
+    eligibility: str = "Open to all motivated applicants"
+    application_type: str = "SkillBridge application"
+    external_url: str = ""
+    owner_email: str
+    status: str = "Active"
+    verified: bool = False
+
+
 @app.on_event("startup")
 async def on_start():
     for op in SEED_OPPORTUNITIES:
@@ -178,7 +198,7 @@ async def get_user(email: str):
 
 @api.get("/opportunities", response_model=List[Dict[str, Any]])
 async def list_opportunities(email: Optional[str] = None):
-    docs = await db.opportunities.find({}, {"_id": 0}).to_list(200)
+    docs = await db.opportunities.find({"status": {"$ne": "Paused"}}, {"_id": 0}).to_list(200)
     user_skills: List[str] = []
     if email:
         u = await db.users.find_one({"email": email}, {"_id": 0, "skills": 1})
@@ -196,6 +216,43 @@ async def list_my_opportunities(owner_email: str):
     for d in docs:
         d["applicant_count"] = await db.applications.count_documents({"opportunity_id": d["id"]})
     return docs
+
+
+@api.post("/opportunities", response_model=Dict[str, Any])
+async def create_opportunity(payload: OpportunityPayload):
+    doc = payload.model_dump()
+    doc.update({"id": f"opp-{uuid.uuid4().hex[:10]}", "base_score": 70, "color": "violet", "created_at": datetime.now(timezone.utc).isoformat()})
+    await db.opportunities.insert_one(doc)
+    return clean(doc)
+
+
+@api.patch("/opportunities/{opp_id}", response_model=Dict[str, Any])
+async def update_opportunity(opp_id: str, payload: OpportunityPayload):
+    current = await db.opportunities.find_one({"id": opp_id, "owner_email": payload.owner_email}, {"_id": 0})
+    if not current:
+        raise HTTPException(403, "Not the owner of this opportunity")
+    doc = payload.model_dump()
+    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.opportunities.update_one({"id": opp_id}, {"$set": doc})
+    return clean(await db.opportunities.find_one({"id": opp_id}, {"_id": 0}))
+
+
+@api.post("/opportunities/{opp_id}/duplicate", response_model=Dict[str, Any])
+async def duplicate_opportunity(opp_id: str, owner_email: str = Query(...)):
+    source = await db.opportunities.find_one({"id": opp_id, "owner_email": owner_email}, {"_id": 0})
+    if not source:
+        raise HTTPException(403, "Not the owner of this opportunity")
+    source.update({"id": f"opp-{uuid.uuid4().hex[:10]}", "title": f"Copy of {source['title']}", "status": "Draft", "created_at": datetime.now(timezone.utc).isoformat()})
+    await db.opportunities.insert_one(source)
+    return clean(source)
+
+
+@api.delete("/opportunities/{opp_id}")
+async def delete_opportunity(opp_id: str, owner_email: str = Query(...)):
+    result = await db.opportunities.delete_one({"id": opp_id, "owner_email": owner_email})
+    if not result.deleted_count:
+        raise HTTPException(403, "Not the owner of this opportunity")
+    return {"deleted": True}
 
 
 @api.get("/opportunities/{opp_id}", response_model=Dict[str, Any])
