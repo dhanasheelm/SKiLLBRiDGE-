@@ -6,6 +6,21 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.oxml.ns import qn
 from lxml import etree
+import qrcode
+from PIL import Image
+import io, os
+
+DEMO_URL = "https://ai-match-hub-10.preview.emergentagent.com/"
+QR_PATH = "/app/scripts/_qr_demo.png"
+
+def build_qr(url, path):
+    qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=20, border=2)
+    qr.add_data(url); qr.make(fit=True)
+    img = qr.make_image(fill_color=(8, 10, 18), back_color=(246, 247, 251)).convert("RGBA")
+    img.save(path)
+    return path
+
+build_qr(DEMO_URL, QR_PATH)
 
 # ---------- Brand palette ----------
 BG = RGBColor(0x08, 0x0A, 0x12)           # near-black
@@ -535,7 +550,7 @@ for cx, cy, rgb in [(Inches(9.5), Inches(1.8), VIOLET), (Inches(10.3), Inches(5.
 add_brand_lockup(s12, Inches(0.6), Inches(0.45))
 add_eyebrow(s12, Inches(0.6), Inches(2.4), "TRY IT · ASK US · JUDGE US", color=CYAN)
 
-tb = s12.shapes.add_textbox(Inches(0.6), Inches(2.75), Inches(12), Inches(3.3))
+tb = s12.shapes.add_textbox(Inches(0.6), Inches(2.75), Inches(9.4), Inches(3.3))
 tf = tb.text_frame
 tf.word_wrap = True
 p1 = tf.paragraphs[0]; p1.line_spacing = 1.02
@@ -544,12 +559,29 @@ p2 = tf.add_paragraph(); p2.line_spacing = 1.02
 r = p2.add_run(); r.text = "We built the bridge. "; r.font.name = "Calibri"; r.font.size = Pt(48); r.font.bold = True; r.font.color.rgb = WHITE
 r = p2.add_run(); r.text = "Ready to walk it?"; r.font.name = "Calibri"; r.font.size = Pt(48); r.font.bold = True; r.font.color.rgb = VIOLET
 
-add_text(s12, Inches(0.6), Inches(5.9), Inches(9), Inches(0.5), "Live demo · Student aarav@demo.com · Professional maya@demo.com", size=15, color=MUTED)
+add_text(s12, Inches(0.6), Inches(5.9), Inches(7.5), Inches(0.5), "Live demo · Student aarav@demo.com · Professional maya@demo.com", size=15, color=MUTED)
 
 # CTA pill row
 add_pill(s12, Inches(0.6), Inches(6.6), "TRY THE DEMO", CYAN, width=Inches(2.2))
 add_pill(s12, Inches(3.0), Inches(6.6), "QUESTIONS · WELCOME", VIOLET, width=Inches(2.8))
 add_pill(s12, Inches(6.0), Inches(6.6), "THANK YOU · JUDGES", PINK, width=Inches(2.4))
+
+# QR card — top right
+qr_box_left = Inches(10.15)
+qr_box_top = Inches(2.55)
+qr_box_w = Inches(2.7)
+qr_box_h = Inches(3.9)
+add_rect(s12, qr_box_left, qr_box_top, qr_box_w, qr_box_h, fill=RGBColor(0x11, 0x15, 0x22), line=CYAN)
+add_eyebrow(s12, qr_box_left + Inches(0.25), qr_box_top + Inches(0.25), "SCAN · OPEN ON YOUR PHONE", color=CYAN, width=qr_box_w - Inches(0.5))
+# White QR container (QR needs light background to scan well)
+qr_pad_left = qr_box_left + Inches(0.35)
+qr_pad_top = qr_box_top + Inches(0.7)
+qr_pad_size = Inches(2.0)
+white = s12.shapes.add_shape(MSO_SHAPE.RECTANGLE, qr_pad_left, qr_pad_top, qr_pad_size, qr_pad_size)
+white.fill.solid(); white.fill.fore_color.rgb = RGBColor(0xF6, 0xF7, 0xFB); white.line.fill.background(); white.shadow.inherit = False
+s12.shapes.add_picture(QR_PATH, qr_pad_left + Inches(0.1), qr_pad_top + Inches(0.1), width=qr_pad_size - Inches(0.2), height=qr_pad_size - Inches(0.2))
+add_text(s12, qr_box_left + Inches(0.25), qr_pad_top + qr_pad_size + Inches(0.15), qr_box_w - Inches(0.5), Inches(0.5), "Try it while we talk.", size=13, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+add_text(s12, qr_box_left + Inches(0.25), qr_pad_top + qr_pad_size + Inches(0.5), qr_box_w - Inches(0.5), Inches(0.5), DEMO_URL.replace("https://", ""), size=9, color=CYAN, font="Consolas", align=PP_ALIGN.CENTER, letter_spacing=100)
 
 slide_number(s12, 12, TOTAL)
 
