@@ -1,7 +1,9 @@
+from supabase import create_client, Client
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import asyncio
+from copy import deepcopy
 import logging
 import os
 import secrets
@@ -11,18 +13,128 @@ import requests
 import resend
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, File, HTTPException, Query, Response, UploadFile
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr, Field
 from starlette.middleware.cors import CORSMiddleware
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 
-client = AsyncIOMotorClient(os.environ["MONGO_URL"])
-db = client[os.environ["DB_NAME"]]
+if not SUPABASE_URL or not SUPABASE_KEY or not SUPABASE_SERVICE_KEY:
+    raise RuntimeError(
+        "SUPABASE_URL, SUPABASE_KEY and SUPABASE_SERVICE_KEY are required"
+    )
+
+supabase: Client = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY
+)
+
+supabase_admin: Client = create_client(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_KEY
+)
+
 app = FastAPI(title="SKILLBRIDGE API")
 api = APIRouter(prefix="/api")
 logger = logging.getLogger("skillbridge")
+
+
+def _matches(document: Dict[str, Any], query: Dict[str, Any]) -> bool:
+    """Match the small subset of query operators this API uses."""
+    for key, expected in query.items():
+        actual = document.get(key)
+        if isinstance(expected, dict) and "$ne" in expected:
+            if actual == expected["$ne"]:
+                return False
+        elif actual != expected:
+            return False
+    return True
+
+
+def _project(document: Dict[str, Any], projection: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    result = deepcopy(document)
+    if not projection:
+        return result
+    included = [key for key, value in projection.items() if value and key != "_id"]
+    if included:
+        return {key: result[key] for key in included if key in result}
+    for key, value in projection.items():
+        if not value:
+            result.pop(key, None)
+    return result
+
+
+class MemoryCursor:
+    def __init__(self, documents: List[Dict[str, Any]]):
+        self.documents = documents
+
+    def sort(self, field: str, direction: int):
+        self.documents.sort(key=lambda item: item.get(field, ""), reverse=direction < 0)
+        return self
+
+    async def to_list(self, length: int) -> List[Dict[str, Any]]:
+        return self.documents[:length]
+
+
+class MemoryCollection:
+    def __init__(self):
+        self.documents: List[Dict[str, Any]] = []
+
+    async def find_one(self, query: Dict[str, Any], projection: Optional[Dict[str, Any]] = None):
+        for document in self.documents:
+            if _matches(document, query):
+                return _project(document, projection)
+        return None
+
+    def find(self, query: Dict[str, Any], projection: Optional[Dict[str, Any]] = None) -> MemoryCursor:
+        return MemoryCursor([_project(document, projection) for document in self.documents if _matches(document, query)])
+
+    async def insert_one(self, document: Dict[str, Any]):
+        self.documents.append(deepcopy(document))
+
+    async def insert_many(self, documents: List[Dict[str, Any]]):
+        self.documents.extend(deepcopy(documents))
+
+    async def update_one(self, query: Dict[str, Any], update: Dict[str, Any], upsert: bool = False):
+        for document in self.documents:
+            if _matches(document, query):
+                document.update(deepcopy(update.get("$set", {})))
+                return
+        if upsert:
+            document = deepcopy(query)
+            document.update(deepcopy(update.get("$setOnInsert", {})))
+            document.update(deepcopy(update.get("$set", {})))
+            self.documents.append(document)
+
+    async def update_many(self, query: Dict[str, Any], update: Dict[str, Any]):
+        for document in self.documents:
+            if _matches(document, query):
+                document.update(deepcopy(update.get("$set", {})))
+
+    async def delete_one(self, query: Dict[str, Any]):
+        for index, document in enumerate(self.documents):
+            if _matches(document, query):
+                self.documents.pop(index)
+                return type("DeleteResult", (), {"deleted_count": 1})()
+        return type("DeleteResult", (), {"deleted_count": 0})()
+
+    async def count_documents(self, query: Dict[str, Any]) -> int:
+        return sum(_matches(document, query) for document in self.documents)
+
+
+class MemoryDatabase:
+    """Ephemeral local storage used when no external database is configured."""
+    def __init__(self):
+        self.collections: Dict[str, MemoryCollection] = {}
+
+    def __getattr__(self, name: str) -> MemoryCollection:
+        return self.collections.setdefault(name, MemoryCollection())
+
+
+db = MemoryDatabase()
 
 resend.api_key = os.environ.get("RESEND_API_KEY", "")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
@@ -176,25 +288,89 @@ async def root():
 
 @api.get("/health")
 async def health():
-    await db.command("ping")
-    return {"status": "ok", "database": "connected"}
+    return {"status": "ok", "database": "supabase"}
 
 
 @api.post("/users", response_model=Dict[str, Any])
 async def upsert_user(payload: UserPayload):
-    doc = payload.model_dump()
-    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await db.users.update_one({"email": payload.email}, {"$set": doc, "$setOnInsert": {"id": str(uuid.uuid4())}}, upsert=True)
-    return clean(await db.users.find_one({"email": payload.email}, {"_id": 0}))
+    try:
+        auth_users = await asyncio.to_thread(
+            supabase_admin.auth.admin.list_users
+        )
+
+        auth_user = next(
+            (
+                user
+                for user in auth_users
+                if user.email
+                and user.email.lower() == payload.email.lower()
+            ),
+            None
+        )
+
+        if not auth_user:
+            raise HTTPException(
+                status_code=404,
+                detail="Supabase Auth user not found. Please sign up first."
+            )
+
+        doc = payload.model_dump()
+        doc["id"] = auth_user.id
+        doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+        result = await asyncio.to_thread(
+            lambda: supabase_admin
+                .table("profiles")
+                .upsert(doc, on_conflict="id")
+                .execute()
+        )
+
+        if not result.data:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to save profile"
+            )
+
+        return result.data[0]
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Supabase profile upsert failed: %s", exc)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to save user profile"
+        )
 
 
 @api.get("/users/{email}", response_model=Dict[str, Any])
 async def get_user(email: str):
-    user = await db.users.find_one({"email": email}, {"_id": 0})
-    if not user:
-        raise HTTPException(404, "User not found")
-    return user
+    try:
+        result = await asyncio.to_thread(
+            lambda: supabase_admin
+                .table("profiles")
+                .select("*")
+                .eq("email", email)
+                .limit(1)
+                .execute()
+        )
 
+        if not result.data:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+
+        return result.data[0]
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Supabase profile fetch failed: %s", exc)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to fetch user profile"
+        )
 
 @api.get("/opportunities", response_model=List[Dict[str, Any]])
 async def list_opportunities(email: Optional[str] = None):
@@ -407,8 +583,3 @@ async def get_portfolio(path: str):
 app.include_router(api)
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","), allow_methods=["*"], allow_headers=["*"])
 logging.basicConfig(level=logging.INFO)
-
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
