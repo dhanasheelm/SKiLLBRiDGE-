@@ -47,6 +47,25 @@ function normaliseApp(a) {
 const SkillbridgeCtx = createContext(null);
 function useSkillbridge() { return useContext(SkillbridgeCtx); }
 
+function HomeMatchScoreFormatter() {
+  useEffect(() => {
+    const format = (node) => {
+      if (node.dataset.splitScore) return;
+      const score = node.textContent.replace("%", "").trim();
+      if (!score) return;
+      node.dataset.splitScore = "true";
+      node.replaceChildren();
+      const number = document.createElement("span"); number.className = "match-score-number"; number.textContent = score;
+      const symbol = document.createElement("span"); symbol.className = "match-score-symbol"; symbol.textContent = "%";
+      node.append(number, symbol);
+    };
+    const refresh = () => document.querySelectorAll('[data-testid="home-match-score"]').forEach(format);
+    refresh(); const observer = new MutationObserver(refresh); observer.observe(document.body, { childList:true, subtree:true });
+    return () => observer.disconnect();
+  }, []);
+  return null;
+}
+
 function SkillbridgeProvider({ children }) {
   const [user, setUserState] = useState(() => read("skillbridge_user", null));
   const [opportunities, setOpportunities] = useState(() => read("skillbridge_opps_cache", FALLBACK_OPPORTUNITIES));
@@ -192,7 +211,7 @@ function SkillbridgeProvider({ children }) {
   }, [user, opportunities]);
 
   const value = { user, setUser, opportunities: personalized, allOpportunities: opportunities, applications, saved, loading, dataError, overallMatch, skillBreakdown, nextSkill, strongestSkill, stats, submitApplication, toggleSaved, refreshOpportunities, createOpportunity };
-  return <SkillbridgeCtx.Provider value={value}>{children}</SkillbridgeCtx.Provider>;
+  return <SkillbridgeCtx.Provider value={value}><HomeMatchScoreFormatter />{children}</SkillbridgeCtx.Provider>;
 }
 
 function Brand({ compact = false }) { return <Link to="/home" className={`brand ${compact ? "brand-compact" : ""}`} data-testid="brand-home-link"><span className="brand-mark"><span /></span><span>SKILL<span>BRIDGE</span></span></Link>; }
